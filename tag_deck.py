@@ -35,35 +35,25 @@ def main(card_path, anki_apkg):
     for index, row in df.iterrows():
 
         guid = row['guid']
-        tag = row['tag']
+        tag = "Autotag::" + row['tag'].replace(' ', '_')  # prepend "Autotag::" and replace spaces with underscores
         score = int(row['score'])
 
         if score >= HIGH_RELEVANCE_CUTOFF:
-            try:
-                note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
-                new_tag = note_tags + " " + tag+"::1_highly_relevant" + " "
-                col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
-                tagged.add(guid)
-            except:
-                print(f"guid not found for card: {row['card']}")
+            tag += "::1_highly_relevant"
+        elif score < HIGH_RELEVANCE_CUTOFF and score >= MEDIUM_RELEVANCE_CUTOFF:
+            tag += "::2_somewhat_relevant"
+        elif score < MEDIUM_RELEVANCE_CUTOFF and score >= REMOVE_RELEVANCE_CUTOFF:
+            tag += "::3_minimally_relevant"
+        else:
+            continue
 
-        if score < HIGH_RELEVANCE_CUTOFF and score >= MEDIUM_RELEVANCE_CUTOFF:
-            try:
-                note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
-                new_tag = note_tags + " " + tag+"::2_somewhat_relevant" + " "
-                col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
-                tagged.add(guid)
-            except:
-                print(f"guid not found for card: {row['card']}")
-
-        if score < MEDIUM_RELEVANCE_CUTOFF and score >= REMOVE_RELEVANCE_CUTOFF:
-            try:
-                note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
-                new_tag = note_tags + " " + tag+"::3_minimally_relevant" + " "
-                col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
-                tagged.add(guid)
-            except:
-                print(f"guid not found for card: {row['card']}")
+        try:
+            note_id, note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?", guid)[0]
+            new_tag = note_tags + " " + tag + " "
+            col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
+            tagged.add(guid)
+        except:
+            print(f"guid not found for card: {row['card']}")
 
     # Save the collection
     col.close()
