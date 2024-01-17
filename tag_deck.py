@@ -2,6 +2,7 @@ import os, sys
 import shutil
 import zipfile
 import pandas as pd
+import time
 from anki.collection import Collection
 
 HIGH_RELEVANCE_CUTOFF = 70
@@ -29,6 +30,9 @@ def main(card_path, anki_apkg):
     col = Collection(os.path.join("temp_folder", anki2_file))
     tagged = set()
 
+    # Declare edit date in epoch seconds
+    seconds = int(time.time())
+
     # Iterate through all cards
     # For each row in the DataFrame
 
@@ -43,6 +47,7 @@ def main(card_path, anki_apkg):
                 note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
                 new_tag = note_tags + " " + tag+"::1_highly_relevant" + " "
                 col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
+                col.db.execute("UPDATE notes set mod = ? where id = ?", seconds, note_id)
                 tagged.add(guid)
             except:
                 print(f"guid not found for card: {row['card']}")
@@ -52,6 +57,7 @@ def main(card_path, anki_apkg):
                 note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
                 new_tag = note_tags + " " + tag+"::2_somewhat_relevant" + " "
                 col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
+                col.db.execute("UPDATE notes set mod = ? where id = ?", seconds, note_id)
                 tagged.add(guid)
             except:
                 print(f"guid not found for card: {row['card']}")
@@ -61,6 +67,7 @@ def main(card_path, anki_apkg):
                 note_id,note_tags = col.db.all("SELECT id, tags FROM notes WHERE guid = ?",guid)[0]
                 new_tag = note_tags + " " + tag+"::3_minimally_relevant" + " "
                 col.db.execute("UPDATE notes set tags = ? where id = ?", new_tag, note_id)
+                col.db.execute("UPDATE notes set mod = ? where id = ?", seconds, note_id)
                 tagged.add(guid)
             except:
                 print(f"guid not found for card: {row['card']}")
